@@ -4,6 +4,5 @@ lxml==4.1.0
 matplotlib==2.2.2
 numpy==1.14.2
 pandas==0.20.3
-requests==2.18.4
 Shapely==1.6.4.post2
 

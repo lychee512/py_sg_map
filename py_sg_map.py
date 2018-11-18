@@ -31,7 +31,8 @@ class GeoDataSg():
         folder = list(document.features())[0]
         placemarks = list(folder.features())
 
-        # warning: placemarks.geometry can be of type shapely.geometry.polygon.Polygon or MultiPolygon or others!
+        # warning: placemarks.geometry can be of type shapely.geometry.polygon.Polygon
+        #  or MultiPolygon or others!
 
         df = pd.DataFrame()
         for i, placemark in enumerate(placemarks):
@@ -58,8 +59,8 @@ class GeoDataSg():
         self.df = df.apply(pd.to_numeric, errors='ignore')
 
     def add_lines_to_plot(self, ax, *args, **kwargs):
-
-        """add a line collection to matplotlib.axes instance ax"""
+        """add a line collection defined from geometry objects in self.df
+        to a matplotlib.axes instance ax"""
         ax.set_xlim(GeoDataSg.LONGITUDE_LIMITS)
         ax.set_ylim(GeoDataSg.LATITUDE_LIMITS)
         ax.set_aspect(GeoDataSg.ASPECT_RATIO)
@@ -81,6 +82,7 @@ class GeoDataSg():
                 for sub_polygon in polygon.geoms:
                     line_list.append(np.asarray(sub_polygon.exterior.xy).transpose())
         ax.add_collection(LineCollection(line_list, *args, **kwargs))
+
 
 if __name__ == '__main__':
     print('imports done')
