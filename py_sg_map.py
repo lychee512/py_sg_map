@@ -5,7 +5,8 @@ import shapely.geometry
 import re
 
 from matplotlib.collections import LineCollection
-
+from matplotlib.collections import PatchCollection
+import matplotlib
 
 class GeoDataSg():
     """Object which holds a DataFrame with each row obtained from a placemark feature in the a KML file.
@@ -58,9 +59,12 @@ class GeoDataSg():
         # df.set_index('SUBZONE_N',verify_integrity=True,inplace =True)
         self.df = df.apply(pd.to_numeric, errors='ignore')
 
-    def add_lines_to_plot(self, ax, *args, **kwargs):
+    def add_lines_to_plot(self, ax, df=None,*args, **kwargs):
         """add a line collection defined from geometry objects in self.df
-        to a matplotlib.axes instance ax"""
+        to a matplotlib.axes instance ax.
+        Returns the LineCollection instance"""
+        if df is None:
+            df = self.df
         ax.set_xlim(GeoDataSg.LONGITUDE_LIMITS)
         ax.set_ylim(GeoDataSg.LATITUDE_LIMITS)
         ax.set_aspect(GeoDataSg.ASPECT_RATIO)
@@ -68,7 +72,7 @@ class GeoDataSg():
         # ax = plt.axes(projection = cartopy.crs.PlateCarree())
         # ax.set_extent([103.6, 104.1, 1.18, 1.48],crs = cartopy.crs.PlateCarree())
         line_list = []
-        for i, polygon in enumerate(self.df['POLYGON']):
+        for i, polygon in enumerate(df['POLYGON']):
             if isinstance(polygon, shapely.geometry.polygon.Polygon):
                 line_list.append(np.asarray(polygon.exterior.xy).transpose())
             elif isinstance(polygon, shapely.geometry.LineString):
@@ -81,7 +85,42 @@ class GeoDataSg():
                 # print(df.iloc[i]['SUBZONE_N']+', part of '+df.iloc[i]['PLN_AREA_N'])
                 for sub_polygon in polygon.geoms:
                     line_list.append(np.asarray(sub_polygon.exterior.xy).transpose())
-        ax.add_collection(LineCollection(line_list, *args, **kwargs))
+        line_collection = LineCollection(line_list, *args, **kwargs)
+        ax.add_collection(line_collection)
+        return line_collection
+        
+    def add_patches_to_plot(self,ax,color_series, *args, **kwargs):
+        """add a patch collection defined from geometry objects in self.df
+        to a matplotlib.axes instance ax, colored according to a color_series iterable.
+        Returns the PatchCollection instance"""
+        ax.set_xlim(GeoDataSg.LONGITUDE_LIMITS)
+        ax.set_ylim(GeoDataSg.LATITUDE_LIMITS)
+        ax.set_aspect(GeoDataSg.ASPECT_RATIO)
+        # This is the more accurate and correct way, if we want to use cartopy
+        # ax = plt.axes(projection = cartopy.crs.PlateCarree())
+        # ax.set_extent([103.6, 104.1, 1.18, 1.48],crs = cartopy.crs.PlateCarree())
+        patch_list = []
+        patch_color_list = []
+        if color_series is None:
+            color_series = np.random.randn(100)
+        for polygon,color_number in zip(self.df['POLYGON'],color_series):
+            if isinstance(polygon, shapely.geometry.polygon.Polygon):
+                x, y = polygon.exterior.coords.xy
+                patch_list.append(matplotlib.patches.Polygon(np.asarray([x,y]).transpose()))
+                patch_color_list.append(color_number)
+            elif isinstance(polygon, shapely.geometry.multipolygon.MultiPolygon):
+                for sub_polygon in polygon.geoms:
+                    x, y = sub_polygon.exterior.coords.xy
+                    patch_list.append(matplotlib.patches.Polygon(np.asarray([x,y]).transpose()))
+                    patch_color_list.append(color_number)
+            else:
+                raise(AttributeError)
+        p = PatchCollection(patch_list, cmap=matplotlib.cm.viridis, alpha=0.3)
+        
+        p.set_array(np.asarray(patch_color_list))
+        ax.add_collection(p)
+        return p
+        
 
 
 if __name__ == '__main__':
